@@ -1,0 +1,57 @@
+name: Generate Documentation on PR Merge to Develop
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+jobs:
+  find-workflows:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout PR contents
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Find all workflow XMLs with IDs
+        id: set-matrix
+        run: |
+          echo "Finding workflow.id in XML..."
+          python3 <<EOF
+          import os
+          import xml.etree.ElementTree as ET
+          import json
+
+          found = []
+          for root, dirs, files in os.walk("."):
+              for file in files:
+                  if file.endswith(".xml"):
+                      path = os.path.join(root, file)
+                      try:
+                          tree = ET.parse(path)
+                          root_el = tree.getroot()
+                          workflow_id = root_el.attrib.get("id")
+                          if workflow_id:
+                              found.append({
+                                  "id": workflow_id,
+                                  "path": path
+                              })
+                      except Exception:
+                          continue
+
+          print(f"Found workflow ID: {[x['id'] for x in found]}")
+          matrix = {"include": found}
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"matrix={json.dumps(matrix)}\n")
+          EOF
