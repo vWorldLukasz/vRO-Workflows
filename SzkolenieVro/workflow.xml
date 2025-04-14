@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<workflow xmlns="http://vmware.com/vco/workflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://vmware.com/vco/workflow http://vmware.com/vco/workflow/Workflow-v4.xsd" root-name="item3" object-name="workflow:name=generic" id="19ee95f1-a9d9-4ada-8ba7-3e0384d591f2" version="0.0.1" api-version="6.0.0" allowed-operations="vfe" editor-version="2.0" restartMode="1" resumeFromFailedMode="0">
+  <display-name><![CDATA[Copy of SzkolenieVro]]></display-name>
+  <description><![CDATA[Szkolenie vRO]]></description>
+  <position y="50.0" x="100.0"/>
+  <input>
+    <param name="name" type="string"/>
+  </input>
+  <attrib name="fullText" type="string" read-only="false">
+    <value encoded="n"><![CDATA[]]></value>
+  </attrib>
+  <attrib name="var_0" type="string" read-only="false">
+    <value encoded="n"><![CDATA[]]></value>
+  </attrib>
+  <attrib name="var_1" type="string" read-only="false">
+    <value encoded="n"><![CDATA[]]></value>
+  </attrib>
+  <attrib name="var_2" type="Properties" read-only="false">
+    <value encoded="n"><![CDATA[{}]]></value>
+  </attrib>
+  <workflow-item name="item0" type="end" end-mode="0">
+    <in-binding/>
+    <position y="50.0" x="500.0"/>
+  </workflow-item>
+  <workflow-item name="item1" out-name="item2" type="task">
+    <display-name><![CDATA[Przywitanie]]></display-name>
+    <script encoded="false"><![CDATA[System.log("Tresc z elementu przywitanie")
+System.log("Hello " + name);
+
+fullText = "Helo " + name;
+
+]]></script>
+    <in-binding>
+      <bind name="name" type="string" export-name="name"/>
+    </in-binding>
+    <out-binding>
+      <bind name="fullText" type="string" export-name="fullText"/>
+    </out-binding>
+    <description><![CDATA[Simple task with custom script capability.]]></description>
+    <position y="60.0" x="260.0"/>
+  </workflow-item>
+  <workflow-item name="item2" out-name="item0" type="task">
+    <display-name><![CDATA[pobranie wartosci]]></display-name>
+    <script encoded="false"><![CDATA[System.log("Tresc z elementu pobranie wartosci")
+System.log(fullText)]]></script>
+    <in-binding>
+      <bind name="fullText" type="string" export-name="fullText"/>
+    </in-binding>
+    <out-binding/>
+    <description><![CDATA[Simple task with custom script capability.]]></description>
+    <position y="60.0" x="380.0"/>
+  </workflow-item>
+  <workflow-item name="item3" out-name="item1" type="task">
+    <runtime><![CDATA[python:3.7]]></runtime>
+    <display-name><![CDATA[Python script]]></display-name>
+    <script encoded="false"><![CDATA[import json
+
+def handler(context, inputs):
+    jsonOut=json.dumps(inputs, separators=(',', ':'))
+    print("Inputs were {0}".format(jsonOut))
+
+    var_2 = {
+      "test": "done"
+    }
+
+    return var_2
+]]></script>
+    <in-binding/>
+    <out-binding>
+      <bind name="var_2" type="Properties" export-name="var_2"/>
+    </out-binding>
+    <description><![CDATA[Simple task with custom script capability.]]></description>
+    <position y="60.0" x="160.0"/>
+  </workflow-item>
+  <presentation/>
+</workflow>
