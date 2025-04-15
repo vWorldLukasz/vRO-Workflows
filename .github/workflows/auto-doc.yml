@@ -4,12 +4,12 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - main
+      - develop
 
 jobs:
   find-workflows:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -27,7 +27,7 @@ jobs:
       - name: Find all workflow XMLs with IDs
         id: set-matrix
         run: |
-          echo "Finding workflow.id in XML..."
+          echo "Szukanie workflow.id w plikach XML..."
           python3 <<EOF
           import os
           import xml.etree.ElementTree as ET
@@ -50,8 +50,66 @@ jobs:
                       except Exception:
                           continue
 
-          print(f"Found workflow ID: {[x['id'] for x in found]}")
+          print(f"Znalezione workflow ID: {[x['id'] for x in found]}")
           matrix = {"include": found}
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"matrix={json.dumps(matrix)}\n")
           EOF
+
+  trigger-vro:
+    needs: find-workflows
+    runs-on: self-hosted
+    strategy:
+      matrix: ${{ fromJson(needs.find-workflows.outputs.matrix) }}
+    steps:
+      - name: Checkout PR contents
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Request Refresh Token
+        id: refresh-token
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST ${{ secrets.VRA_URL }}/csp/gateway/am/api/login?access_token
+          mediaType: application/json
+          data: |
+            {
+              "username": "${{ secrets.VRA_USER }}",
+              "password": "${{ secrets.VRA_PASSWORD }}"
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse Refresh Token
+        id: parse-refresh
+        run: |
+          echo '${{ steps.refresh-token.outputs.data }}' > response.json
+          REFRESH=$(jq -r '.refresh_token' response.json)
+          echo "refresh_token=$REFRESH" >> $GITHUB_OUTPUT
+
+      - name: Request Bearer Token
+        id: bearer-token
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST ${{ secrets.VRA_URL }}/iaas/api/login
+          mediaType: application/json
+          data: |
+            {
+              "refreshToken": "${{ steps.parse-refresh.outputs.refresh_token }}"
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse Bearer Token
+        id: parse-bearer
+        run: |
+          echo '${{ steps.bearer-token.outputs.data }}' > token.json
+          TOKEN=$(jq -r '.token' token.json)
+          echo "bearer_token=$TOKEN" >> $GITHUB_OUTPUT
+
