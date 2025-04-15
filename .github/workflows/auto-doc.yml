@@ -62,44 +62,22 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Request Refresh Token
+      - name: Request Refresh Token (with curl --insecure)
         id: refresh-token
-        uses: octokit/request-action@v2.x
-        with:
-          route: POST ${{ secrets.VRA_URL }}/csp/gateway/am/api/login?access_token
-          mediaType: application/json
-          data: |
-            {
-              "username": "${{ secrets.VRA_USER }}",
-              "password": "${{ secrets.VRA_PASSWORD }}"
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Parse Refresh Token
-        id: parse-refresh
         run: |
-          echo '${{ steps.refresh-token.outputs.data }}' > response.json
-          REFRESH=$(jq -r '.refresh_token' response.json)
-          echo "refresh_token=$REFRESH" >> $GITHUB_OUTPUT
+          RESPONSE=$(curl --insecure -s -X POST "${{ secrets.VRA_URL }}/csp/gateway/am/api/login?access_token" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\": \"${{ secrets.VRA_USER }}\", \"password\": \"${{ secrets.VRA_PASSWORD }}\"}")
+          echo "$RESPONSE" > refresh.json
+          REFRESH_TOKEN=$(jq -r '.refresh_token' refresh.json)
+          echo "refresh_token=$REFRESH_TOKEN" >> $GITHUB_OUTPUT
 
-      - name: Request Bearer Token
+      - name: Request Bearer Token (with curl --insecure)
         id: bearer-token
-        uses: octokit/request-action@v2.x
-        with:
-          route: POST ${{ secrets.VRA_URL }}/iaas/api/login
-          mediaType: application/json
-          data: |
-            {
-              "refreshToken": "${{ steps.parse-refresh.outputs.refresh_token }}"
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Parse Bearer Token
-        id: parse-bearer
         run: |
-          echo '${{ steps.bearer-token.outputs.data }}' > token.json
-          TOKEN=$(jq -r '.token' token.json)
+          RESPONSE=$(curl --insecure -s -X POST "${{ secrets.VRA_URL }}/iaas/api/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"refreshToken\": \"${{ steps.refresh-token.outputs.refresh_token }}\"}")
+          echo "$RESPONSE" > bearer.json
+          TOKEN=$(jq -r '.token' bearer.json)
           echo "bearer_token=$TOKEN" >> $GITHUB_OUTPUT
-
