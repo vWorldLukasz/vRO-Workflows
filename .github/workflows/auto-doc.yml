@@ -62,6 +62,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      - name: Log current workflowID and XML path
+        run: |
+          echo "Running for matrix.id: ${{ matrix.id }}"
+          echo "From file: ${{ matrix.path }}"
+
       - name: Request Refresh Token (with curl --insecure)
         id: refresh-token
         run: |
@@ -81,3 +86,39 @@ jobs:
           echo "$RESPONSE" > bearer.json
           TOKEN=$(jq -r '.token' bearer.json)
           echo "bearer_token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Trigger vRO Workflow (with retry + log)
+        run: |
+          for i in {1..3}; do
+            echo "Attempt $i: triggering vRO workflow for ID: ${{ matrix.id }}"
+
+            RESPONSE=$(curl --insecure -s -w "\n%{http_code}" -X POST \
+              "${{ secrets.VRA_URL }}/vco/api/workflows/d8a3ea33-868f-43f4-bed1-df4404b0cedb/executions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ steps.bearer-token.outputs.bearer_token }}" \
+              -d "{
+                \"parameters\": [
+                  {\"name\": \"workflowID\", \"type\": \"string\", \"value\": \"${{ matrix.id }}\"},
+                  {\"name\": \"branchName\", \"type\": \"string\", \"value\": \"${{ github.head_ref }}\"}
+                ]
+              }")
+
+            HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+            echo "vRO API response code: $HTTP_CODE"
+            echo "vRO API response body:"
+            echo "$HTTP_BODY"
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "Success on attempt $i"
+              break
+            elif [ "$i" -eq 3 ]; then
+              echo "Failed after 3 attempts"
+              exit 1
+            else
+              echo "Attempt $i failed, retrying in 5s..."
+              sleep 5
+            fi
+          done
+
