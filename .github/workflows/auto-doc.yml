@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - develop
+      - main
 
 jobs:
   find-workflows:
@@ -27,7 +27,7 @@ jobs:
       - name: Find all workflow XMLs with IDs
         id: set-matrix
         run: |
-          echo "Szukanie workflow.id w plikach XML..."
+          echo "Finding workflow.id in XML..."
           python3 <<EOF
           import os
           import xml.etree.ElementTree as ET
@@ -50,7 +50,7 @@ jobs:
                       except Exception:
                           continue
 
-          print(f"Znalezione workflow ID: {[x['id'] for x in found]}")
+          print(f"Found workflow ID: {[x['id'] for x in found]}")
           matrix = {"include": found}
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"matrix={json.dumps(matrix)}\n")
