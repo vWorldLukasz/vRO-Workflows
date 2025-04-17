@@ -24,7 +24,7 @@ function table(arr, cols) {
   if (!arr.length) return '';
   const header =
     `| ${cols.map((c) => c.header).join(' | ')} |\n` +
-    `|${'-|'.repeat(cols.length)}\n`;
+    `| ${cols.map(() => '---').join(' | ')} |\n`;
   const rows = arr
     .map((row) => `| ${cols.map((c) => row[c.key] ?? '').join(' | ')} |`)
     .join('\n');
@@ -166,7 +166,7 @@ for (const xmlFile of files) {
     if (el.script?._)
       md += `\n**Script:**\n\n${fence(el.script._.trim())}\n\n`;
 
-    md += '\n---\n\n';
+    md += '\n\n---\n\n';
   }
   md += `</details>\n\n`;
 
