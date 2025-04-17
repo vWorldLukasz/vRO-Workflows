@@ -13,7 +13,7 @@ import path from 'node:path';
 import { loadXml, extractScripts } from './parse-vro.js';
 
 // Search pattern – can be overridden by setting the VRO_GLOB env variable.
-const PATTERN = process.env.VRO_GLOB || '**/*.workflow.xml';
+const PATTERN = process.env.VRO_GLOB || '**/*workflow.xml';
 
 const files = await fg(PATTERN, { dot: true });
 
