@@ -10,7 +10,7 @@ export default [
     rules: {
       /* ----------  Style rules  ---------- */
       indent: ['error', 4, { SwitchCase: 1 }], // 4 spaces, no tabs
-      'linebreak-style': ['error', 'windows'],  // CRLF line endings
+      'linebreak-style': ['error', 'unix'],  // CRLF line endings
       quotes: ['error', 'double', { avoidEscape: true }], // always double quotes
       semi: ['error', 'always', { omitLastInOneLineBlock: true }], // semicolon at end
       'no-trailing-spaces': 'error',            // no spaces at end of line
