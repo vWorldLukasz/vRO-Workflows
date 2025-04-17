@@ -1,4 +1,4 @@
-name: vRO CI
+name: vRO CI
 
 on:
   push:
@@ -12,20 +12,22 @@ jobs:
     defaults:
       run:
         shell: bash
+
     steps:
+      # 1) Checkout
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2) Node (bez cache → nie wymagamy lock‑file)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
+      # 3) Instalacja zależności (npm install, bo brak lock‑file)
       - name: Install deps
-        run: npm ci
+        run: npm install
 
       # ---------- LINT ----------
       - name: Extract & lint vRO scripts
         run: node scripts/lint-workflows.js
-
