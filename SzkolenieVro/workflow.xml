@@ -27,7 +27,7 @@
     <script encoded="false"><![CDATA[System.log("Tresc z elementu przywitanie")
 System.log("Hello " + name);
 
-fullText = "Helo " + name;
+fullText = "Helo " + name
 
 ]]></script>
     <in-binding>
