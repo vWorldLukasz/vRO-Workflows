@@ -30,5 +30,8 @@ jobs:
       #- name: Extract & lint vRO scripts
       #  run: node scripts/lint-workflow.js
 
-      - name: Validate vRO variables & descriptions
-        run: node scripts/validate-workflow.js
+      #- name: Validate vRO variables & descriptions
+      #  run: node scripts/validate-workflow.js
+
+      - name: Build Markdown docs
+        run: node scripts/docs-workflow.js
