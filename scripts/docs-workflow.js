@@ -64,14 +64,20 @@ for (const xmlFile of files) {
   } catch {/* no form */}
 
   // ---------- Helpers ------------------------------------------------------
-  const table = (arr, cols) =>
-    arr.length
-      ? `| ${cols.map((c) => c.header).join(' | ')} |\n|${'-|'.repeat(cols.length)}\n` +
-        arr
-          .map((r) => `| ${cols.map((c) => r[c.key] ?? '').join(' | ')} |`)
-          .join('\n') +
-        '\n'
-      : '';
+    // helper to render markdown tables
+  const table = (arr, cols) => {
+    if (!arr.length) return '';
+    const header = `| ${cols.map((c) => c.header).join(' | ')} |
+`;
+    const sep    = `| ${cols.map(() => '---').join(' | ')} |
+`;
+    const rows   = arr
+      .map((r) => `| ${cols.map((c) => r[c.key] ?? '').join(' | ')} |`)
+      .join('
+');
+    return header + sep + rows + '
+';
+  };
 
   // ---------- Markdown -----------------------------------------------------
   let md = `# ${wfName} - Workflow Documentation\n\n`;
@@ -84,28 +90,41 @@ for (const xmlFile of files) {
 
   if (attribs.length)
     md += `<details>\n<summary><h2>Workflow Variables</h2></summary>\n\n` +
+          md += `<details>
+<summary><h2>Workflow Variables</h2></summary>
+
+` +
       table(attribs, [
         { key: 'name', header: 'Name' },
         { key: 'type', header: 'Type' },
       ]) +
-      `</details>\n\n`;
+      `
+</details>
+
+`;\n\n`;
   if (inputs.length)
     md += `<details>\n<summary><h2>Workflow Inputs</h2></summary>\n\n` +
-      table(inputs, [
+            table(inputs, [
         { key: 'name', header: 'Name' },
         { key: 'type', header: 'Type' },
       ]) +
-      `</details>\n\n`;
+      `
+</details>
+
+`;\n\n`;
   if (outputs.length)
     md += `<details>\n<summary><h2>Workflow Outputs</h2></summary>\n\n` +
-      table(outputs, [
+            table(outputs, [
         { key: 'name', header: 'Name' },
         { key: 'type', header: 'Type' },
       ]) +
-      `</details>\n\n`;
+      `
+</details>
+
+`;\n\n`;
   if (formProps.length)
     md += `<details>\n<summary><h2>Workflow Form</h2></summary>\n\n` +
-      table(formProps, [
+            table(formProps, [
         { key: 'id', header: 'ID' },
         { key: 'label', header: 'Label' },
         { key: 'dataType', header: 'Data Type' },
@@ -114,14 +133,17 @@ for (const xmlFile of files) {
         { key: 'valueList', header: 'Value List' },
         { key: 'signpost', header: 'Signpost' },
       ]) +
-      `</details>\n\n`;
+      `
+</details>
+
+`;\n\n`;
 
   md += `<details>\n<summary><h2>Workflow Elements</h2></summary>\n\n`;
   for (const el of items) {
     const elName = text(el['display-name']) || el.name || 'unknown';
     md += `#### Element: ${elName}\n`;
     md += `- **Type:** ${el.type}\n`;
-    md += `- **Description:** ${el.description ?? '_No description provided_'}\n`;
+    md += `- **Description:** ${text(el.description) || '_No description provided_'} ?? '_No description provided_'}\n`;
 
     const inB = collect(el['in-binding']?.bind);
     if (inB.length)
