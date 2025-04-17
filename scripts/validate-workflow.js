@@ -1,12 +1,11 @@
 // validate-workflow.js – vRO‑specific validator for variable naming & descriptions
 // -----------------------------------------------------------------------------
-//  • Scans every *.workflow.xml (pattern taken from env VRO_GLOB or fallback)
-//  • Validates that input/output/attribute names follow naming conventions:
-//      – lowerCamelCase  for normal variables/functions
-//      – UPPER_CASE      for constants (heuristic: attribute read‑only="true")
-//        If you use another rule to mark constants, adjust isConstant().
-//  • Checks that every <workflow-item> has a non‑empty <description>.
-//  • Reports all violations and exits with code 1 if any were found.
+// • Scans every *.workflow.xml (pattern from env VRO_GLOB or fallback)
+// • Validates that input/output/attribute names follow naming conventions:
+//     – lowerCamelCase  for normal variables/functions
+//     – UPPER_CASE      for constants (heuristic: attribute read‑only="true")
+// • Checks that every <workflow-item> has a non‑empty <description>.
+// • Reports all violations and exits with code 1 if any were found.
 // -----------------------------------------------------------------------------
 
 import fg from 'fast-glob';
@@ -14,21 +13,28 @@ import path from 'node:path';
 import { loadXml } from './parse-vro.js';
 
 const GLOB = process.env.VRO_GLOB || '**/*workflow.xml';
+
+// RegEx helpers
 const CAMEL_CASE_RE = /^[a-z][a-zA-Z0-9]*$/;
 const UPPER_CASE_RE = /^[A-Z0-9_]+$/;
 
 function isConstant(attr) {
-  // Heuristic: treat attribute as constant if read‑only="true"
-  return attr['read-only'] === 'true' || attr.readOnly === true;
+  // Heuristic: treat attribute as constant if marked read‑only="true"
+  return (
+    attr['read-only'] === 'true' ||
+    attr.readOnly === true ||
+    attr['readOnly'] === 'true'
+  );
 }
 
 function validateName(name, constant) {
-  if (constant) return UPPER_CASE_RE.test(name);
-  return CAMEL_CASE_RE.test(name);
+  return constant ? UPPER_CASE_RE.test(name) : CAMEL_CASE_RE.test(name);
 }
 
-function hasDescription(obj) {
-  return obj.description?._?.trim().length > 0;
+function hasDescription(item) {
+  if (!item || !item.description) return false;
+  const text = item.description._ ?? item.description;
+  return typeof text === 'string' && text.trim().length > 0;
 }
 
 /* -------------------------  MAIN VALIDATION  ------------------------- */
@@ -41,40 +47,64 @@ console.log(`    ➜  ${files.length} workflow file(s) found\n`);
 
 for (const file of files) {
   const wfObj = await loadXml(file);
-  const wf = wfObj.workflow;
+
+  // Handle namespaced root (<workflow xmlns="…">)
+  const rootKey = Object.keys(wfObj)[0];
+  const wf = wfObj[rootKey];
+
+  if (!wf) {
+    console.error(`${file}: cannot find <workflow> root element`);
+    violations++;
+    continue;
+  }
+
   const fileRel = path.relative('.', file);
 
-  // 1) Validate inputs, outputs, attributes
-  const sections = [
-    ...(wf.input?.param ?? []),
-    ...(wf.output?.param ?? []),
-    ...(wf.attrib ?? []),
-  ];
+  /* ------------ Validate variable naming ------------ */
+  const inputs = Array.isArray(wf.input?.param)
+    ? wf.input.param
+    : wf.input?.param
+    ? [wf.input.param]
+    : [];
+  const outputs = Array.isArray(wf.output?.param)
+    ? wf.output.param
+    : wf.output?.param
+    ? [wf.output.param]
+    : [];
+  const attribs = Array.isArray(wf.attrib) ? wf.attrib : wf.attrib ? [wf.attrib] : [];
+
+  const sections = [...inputs, ...outputs, ...attribs];
 
   for (const entry of sections) {
-    const name = entry.name;
-    const constant = entry.type === 'const' || isConstant(entry);
+    const name = entry?.name;
+    if (!name) continue;
+    const constant = isConstant(entry);
     if (!validateName(name, constant)) {
-      console.error(`${fileRel}: invalid name "${name}" (expected ${constant ? 'UPPER_CASE' : 'camelCase'})`);
+      console.error(
+        `${fileRel}: variable "${name}" violates naming convention (expected ${
+          constant ? 'UPPER_CASE' : 'camelCase'
+        })`
+      );
       violations++;
     }
   }
 
-  // 2) Validate each workflow‑item has description
-  const items = wf['workflow-item'] ?? [];
-  const arr = Array.isArray(items) ? items : [items];
+  /* ------------ Validate descriptions ------------ */
+  const itemsRaw = wf['workflow-item'] ?? [];
+  const items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];
 
-  for (const item of arr) {
+  for (const item of items) {
     if (!hasDescription(item)) {
-      console.error(`${fileRel}: workflow-item "${item.name ?? item['display-name']?._ ?? 'unknown'}" is missing <description>`);
+      const label = item['display-name']?._ ?? item.name ?? 'unknown';
+      console.error(`${fileRel}: workflow-item "${label}" is missing <description>`);
       violations++;
     }
   }
 }
 
 if (violations > 0) {
-  console.error(`\n Validation failed with ${violations} violation(s).`);
+  console.error(`\n❌  Validation failed with ${violations} violation(s).`);
   process.exit(1);
 } else {
-  console.log('All variables & descriptions are valid.');
+  console.log('✅  All variables & descriptions are valid.');
 }
