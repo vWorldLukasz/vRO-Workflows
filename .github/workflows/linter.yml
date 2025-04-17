@@ -30,4 +30,4 @@ jobs:
 
       # ---------- LINT ----------
       - name: Extract & lint vRO scripts
-        run: node scripts/lint-workflows.js
+        run: node scripts/lint-workflow.js
