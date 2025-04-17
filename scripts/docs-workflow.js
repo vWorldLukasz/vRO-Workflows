@@ -13,6 +13,7 @@ await fs.mkdir(OUT_DIR, { recursive: true });
 
 const collect = (x) => (Array.isArray(x) ? x : x ? [x] : []);
 const fence = (code, lang = 'javascript') => `\`\`\`${lang}\n${code}\n\`\`\``;
+const txt = (node) => (typeof node === 'string' ? node : node?._ ?? '');
 
 // small util to build markdown tables
 function table(arr, cols) {
@@ -57,7 +58,7 @@ for (const xmlFile of files) {
     if (el.type === 'link' && el['linked-workflow-id']) {
       linkedWorkflows.push({
         id: el['linked-workflow-id'],
-        name: el['display-name'] ?? el.name,
+        name: txt(el['display-name']) || el.name,
       });
     }
     if (el['script-module']) linkedModules.push(el['script-module']);
@@ -134,7 +135,7 @@ for (const xmlFile of files) {
   // elements
   md += `<details>\n<summary><h2>Workflow Elements</h2></summary>\n\n`;
   for (const el of items) {
-    const elName = el['display-name'] ?? el.name ?? 'unknown';
+    const elName = txt(el['display-name']) || el.name || 'unknown';
     md += `#### Element: ${elName}\n`;
     md += `- **Type:** ${el.type}\n`;
     md += `- **Description:** ${el.description ?? '_No description provided_'}\n`;
