@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item1" object-name="workflow:name=generic" id="61ef4779-a6df-4d4f-9d74-a9aedf4915ba" editor-version="2.0" version="0.0.0" api-version="6.0.0" restartMode="1" resumeFromFailedMode="0">
+    <display-name>test_workflow_for_lint</display-name>
+    <position y="50.0" x="100.0"/>
+    <input>
+        <param name="Thisis_wronginput" type="string"/>
+    </input>
+    <output/>
+    <attrib name="correctVariable" type="string">
+        <value encoded="n"/>
+        <description>this is correct variable with camel</description>
+    </attrib>
+    <workflow-item name="item0" type="end" end-mode="0" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="50.0" x="560.0"/>
+    </workflow-item>
+    <workflow-item name="item1" out-name="item2" type="task" comparator="0">
+        <display-name>CorrectCode</display-name>
+        <script encoded="false">
+System.log('Hello World');
+
+var firstString = 'test';
+
+var secondString = firstString;
+
+System.log(secondString)
+</script>
+        <in-binding/>
+        <out-binding/>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="170.0"/>
+    </workflow-item>
+    <workflow-item name="item2" out-name="item0" type="task" comparator="0">
+        <display-name>WrongCode</display-name>
+        <script encoded="false">
+System.log("Hello World");
+
+var firstString = 'test'
+
+</script>
+        <in-binding/>
+        <out-binding/>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="340.0"/>
+    </workflow-item>
+</ns2:workflow>
