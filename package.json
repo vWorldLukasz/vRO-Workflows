@@ -6,7 +6,7 @@
     "docs": "node scripts/docs-workflows.js"
   },
   "dependencies": {
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
     "fast-glob": "^3.3.2"
   },
   "devDependencies": {
