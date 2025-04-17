@@ -2,9 +2,10 @@
 // -----------------------------------------------------------------------------
 // • Scans every *.workflow.xml (pattern from env VRO_GLOB or fallback)
 // • Validates that input/output/attribute names follow naming conventions:
-//     – lowerCamelCase  for normal variables/functions
+//     – lowerCamelCase  for regular variables / functions
 //     – UPPER_CASE      for constants (heuristic: attribute read‑only="true")
-// • Checks that every <workflow-item> has a non‑empty <description>.
+// • Checks that every <workflow-item> (except start/end/link) has a non‑empty <description>.
+// • Checks that every <input>/<output>/<attrib> has a non‑empty <description> child.
 // • Reports all violations and exits with code 1 if any were found.
 // -----------------------------------------------------------------------------
 
@@ -15,11 +16,12 @@ import { loadXml } from './parse-vro.js';
 const GLOB = process.env.VRO_GLOB || '**/*workflow.xml';
 
 // RegEx helpers
-const CAMEL_CASE_RE = /^[a-z][a-zA-Z0-9]*$/;
+// CamelCase must start with a lowercase letter and include at least one capital
+const CAMEL_CASE_RE = /^[a-z]+(?:[A-Z][a-z0-9]*)*$/;
 const UPPER_CASE_RE = /^[A-Z0-9_]+$/;
 
 function isConstant(attr) {
-  // Heuristic: treat attribute as constant if marked read‑only="true"
+  // heuristics: treat attribute as constant if read‑only="true"
   return (
     attr['read-only'] === 'true' ||
     attr.readOnly === true ||
@@ -31,25 +33,22 @@ function validateName(name, constant) {
   return constant ? UPPER_CASE_RE.test(name) : CAMEL_CASE_RE.test(name);
 }
 
-function hasDescription(item) {
-  if (!item || !item.description) return false;
-  const text = item.description._ ?? item.description;
+function nodeHasDescription(node) {
+  if (!node || !node.description) return false;
+  const text = node.description._ ?? node.description;
   return typeof text === 'string' && text.trim().length > 0;
 }
 
-/* -------------------------  MAIN VALIDATION  ------------------------- */
+/* -----------------------------  MAIN  ----------------------------- */
 
 let violations = 0;
-
 const files = await fg(GLOB, { dot: true });
 console.log(`🔍  Validating variables & descriptions: pattern = ${GLOB}`);
 console.log(`    ➜  ${files.length} workflow file(s) found\n`);
 
 for (const file of files) {
   const wfObj = await loadXml(file);
-
-  // Handle namespaced root (<workflow xmlns="…">)
-  const rootKey = Object.keys(wfObj)[0];
+  const rootKey = Object.keys(wfObj)[0]; // handle namespace prefixes
   const wf = wfObj[rootKey];
 
   if (!wf) {
@@ -60,24 +59,20 @@ for (const file of files) {
 
   const fileRel = path.relative('.', file);
 
-  /* ------------ Validate variable naming ------------ */
-  const inputs = Array.isArray(wf.input?.param)
-    ? wf.input.param
-    : wf.input?.param
-    ? [wf.input.param]
-    : [];
-  const outputs = Array.isArray(wf.output?.param)
-    ? wf.output.param
-    : wf.output?.param
-    ? [wf.output.param]
-    : [];
-  const attribs = Array.isArray(wf.attrib) ? wf.attrib : wf.attrib ? [wf.attrib] : [];
+  /* -------- 1. Validate input/output/attrib naming + description -------- */
+  const collect = (node) =>
+    Array.isArray(node) ? node : node ? [node] : [];
+
+  const inputs = collect(wf.input?.param);
+  const outputs = collect(wf.output?.param);
+  const attribs = collect(wf.attrib);
 
   const sections = [...inputs, ...outputs, ...attribs];
 
   for (const entry of sections) {
     const name = entry?.name;
     if (!name) continue;
+
     const constant = isConstant(entry);
     if (!validateName(name, constant)) {
       console.error(
@@ -87,14 +82,22 @@ for (const file of files) {
       );
       violations++;
     }
+
+    if (!nodeHasDescription(entry)) {
+      console.error(`${fileRel}: variable "${name}" is missing <description>`);
+      violations++;
+    }
   }
 
-  /* ------------ Validate descriptions ------------ */
+  /* -------- 2. Validate workflow‑item descriptions -------- */
   const itemsRaw = wf['workflow-item'] ?? [];
   const items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];
 
   for (const item of items) {
-    if (!hasDescription(item)) {
+    const type = item.type ?? item["type"];
+    if (type === 'end' || type === 'start' || type === 'link') continue; // skip technical nodes
+
+    if (!nodeHasDescription(item)) {
       const label = item['display-name']?._ ?? item.name ?? 'unknown';
       console.error(`${fileRel}: workflow-item "${label}" is missing <description>`);
       violations++;
