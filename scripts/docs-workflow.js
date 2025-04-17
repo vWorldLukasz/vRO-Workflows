@@ -1,48 +1,33 @@
-// docs-workflow.js — generate Markdown docs purely from XML + local form JSON
+// docs-workflow.js — generate Markdown docs from vRO XML + local form JSON
+// -----------------------------------------------------------------------------
+// Fix: correct handling of <display-name> so we never print [object Object]
 // -----------------------------------------------------------------------------
 import fg from 'fast-glob';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { loadXml } from './parse-vro.js';
 
-// ENV override (optional)
 const GLOB = process.env.VRO_GLOB || '**/*workflow.xml';
 const OUT_DIR = 'docs/workflows';
-
 await fs.mkdir(OUT_DIR, { recursive: true });
 
 const collect = (x) => (Array.isArray(x) ? x : x ? [x] : []);
-const fence = (code, lang = 'javascript') => `\`\`\`${lang}\n${code}\n\`\`\``;
+const fence = (code, lang = 'javascript') => `\`\`\`${lang}\n${code}\n\`\``;
+const text = (node) => (typeof node === 'string' ? node : node?._ ?? '');
 
-// small util to build markdown tables
-function table(arr, cols) {
-  if (!arr.length) return '';
-  const header =
-    `| ${cols.map((c) => c.header).join(' | ')} |\n` +
-    `|${'-|'.repeat(cols.length)}\n`;
-  const rows = arr
-    .map((row) => `| ${cols.map((c) => row[c.key] ?? '').join(' | ')} |`)
-    .join('\n');
-  return header + rows + '\n';
-}
-
-// -----------------------------------------------------------------------------
-// MAIN
 // -----------------------------------------------------------------------------
 const files = await fg(GLOB, { dot: true });
 console.log(`📝  Generating docs for ${files.length} workflow(s)\n`);
 
 for (const xmlFile of files) {
-  // ---------- parse XML ------------------------------------------------------
   const wfObj = await loadXml(xmlFile);
-  const root = wfObj[Object.keys(wfObj)[0]]; // handle namespace prefix
+  const root = wfObj[Object.keys(wfObj)[0]]; // namespace prefix safe
 
-  const wfName =
-    root['display-name']?._ ?? root['object-name'] ?? path.basename(xmlFile);
+  // ---------- Metadata -----------------------------------------------------
+  const wfName = text(root['display-name']) || root['object-name'] || path.basename(xmlFile);
   const wfId = root.id ?? 'n/a';
   const wfVersion = root.version ?? 'n/a';
-  const wfDesc =
-    root.description?._ ?? root.description ?? '_No description provided_';
+  const wfDesc = text(root.description) || '_No description provided_';
 
   const attribs = collect(root.attrib);
   const inputs = collect(root.input?.param);
@@ -50,26 +35,23 @@ for (const xmlFile of files) {
   const items = collect(root['workflow-item']);
   const errorHandlers = collect(root['error-handler']);
 
-  // gather linked modules / wf
+  // ---------- Linked items -------------------------------------------------
   const linkedWorkflows = [];
   const linkedModules = [];
   for (const el of items) {
+    const dispName = text(el['display-name']) || el.name || 'unknown';
     if (el.type === 'link' && el['linked-workflow-id']) {
-      linkedWorkflows.push({
-        id: el['linked-workflow-id'],
-        name: el['display-name'] ?? el.name,
-      });
+      linkedWorkflows.push({ id: el['linked-workflow-id'], name: dispName });
     }
     if (el['script-module']) linkedModules.push(el['script-module']);
   }
 
-  // ---------- parse FORM JSON ----------------------------------------------
+  // ---------- Forms --------------------------------------------------------
   let formProps = [];
-  const formDir = path.join(path.dirname(xmlFile), 'forms');
+  const formFolder = path.join(path.dirname(xmlFile), 'forms');
   try {
-    const formJsonRaw = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
-    const formJson = JSON.parse(formJsonRaw);
-    const schema = formJson.schema ?? {};
+    const formRaw = await fs.readFile(path.join(formFolder, '_.json'), 'utf8');
+    const schema = JSON.parse(formRaw).schema ?? {};
     formProps = Object.values(schema).map((p) => ({
       id: p.id,
       label: p.label,
@@ -79,14 +61,20 @@ for (const xmlFile of files) {
       valueList: JSON.stringify(p.valueList ?? {}),
       signpost: p.signpost ?? '',
     }));
-  } catch {
-    // no forms folder or _.json -> ignore
-  }
+  } catch {/* no form */}
 
-  // ---------- build markdown -------------------------------------------------
+  // ---------- Helpers ------------------------------------------------------
+  const table = (arr, cols) =>
+    arr.length
+      ? `| ${cols.map((c) => c.header).join(' | ')} |\n|${'-|'.repeat(cols.length)}\n` +
+        arr
+          .map((r) => `| ${cols.map((c) => r[c.key] ?? '').join(' | ')} |`)
+          .join('\n') +
+        '\n'
+      : '';
+
+  // ---------- Markdown -----------------------------------------------------
   let md = `# ${wfName} - Workflow Documentation\n\n`;
-
-  // details
   md += `<details>\n<summary><h2>Workflow Details</h2></summary>\n\n`;
   md += `- **Workflow Name:** ${wfName}\n`;
   md += `- **Workflow ID:** \`${wfId}\`\n`;
@@ -101,7 +89,6 @@ for (const xmlFile of files) {
         { key: 'type', header: 'Type' },
       ]) +
       `</details>\n\n`;
-
   if (inputs.length)
     md += `<details>\n<summary><h2>Workflow Inputs</h2></summary>\n\n` +
       table(inputs, [
@@ -109,7 +96,6 @@ for (const xmlFile of files) {
         { key: 'type', header: 'Type' },
       ]) +
       `</details>\n\n`;
-
   if (outputs.length)
     md += `<details>\n<summary><h2>Workflow Outputs</h2></summary>\n\n` +
       table(outputs, [
@@ -117,7 +103,6 @@ for (const xmlFile of files) {
         { key: 'type', header: 'Type' },
       ]) +
       `</details>\n\n`;
-
   if (formProps.length)
     md += `<details>\n<summary><h2>Workflow Form</h2></summary>\n\n` +
       table(formProps, [
@@ -131,10 +116,9 @@ for (const xmlFile of files) {
       ]) +
       `</details>\n\n`;
 
-  // elements
   md += `<details>\n<summary><h2>Workflow Elements</h2></summary>\n\n`;
   for (const el of items) {
-    const elName = el['display-name'] ?? el.name ?? 'unknown';
+    const elName = text(el['display-name']) || el.name || 'unknown';
     md += `#### Element: ${elName}\n`;
     md += `- **Type:** ${el.type}\n`;
     md += `- **Description:** ${el.description ?? '_No description provided_'}\n`;
@@ -157,22 +141,18 @@ for (const xmlFile of files) {
           { key: 'export-name', header: 'Workflow Variable' },
         ]);
 
-    if (el.script?._)
-      md += `\n**Script:**\n\n${fence(el.script._.trim())}\n`;
-
+    if (el.script?._) md += `\n**Script:**\n\n${fence(el.script._.trim())}\n`;
     md += '\n---\n\n';
   }
   md += `</details>\n\n`;
 
-  // error handlers
   md += `<details>\n<summary><h2>Error Handlers</h2></summary>\n\n`;
-  if (errorHandlers.length) {
-    for (const eh of errorHandlers)
-      md += `- **Element Name:** ${eh.name} (throws: ${eh['throw-bind-name'] ?? '_None_'})\n`;
-  } else md += '_No error handlers defined._\n';
+  if (errorHandlers.length)
+    errorHandlers.forEach((eh) =>
+      (md += `- **Element Name:** ${eh.name} (throws: ${eh['throw-bind-name'] ?? '_None_'})\n`));
+  else md += '_No error handlers defined._\n';
   md += `</details>\n\n`;
 
-  // linked
   md += `<details>\n<summary><h2>Linked Workflows</h2></summary>\n\n`;
   if (linkedWorkflows.length)
     linkedWorkflows.forEach((lw) =>
@@ -183,16 +163,12 @@ for (const xmlFile of files) {
   if (linkedModules.length) {
     md += `<details>\n<summary><h2>Linked Actions (script modules)</h2></summary>\n\n`;
     linkedModules.forEach((m) => (md += `- \`${m}\`\n`));
-    md += `</details>\n\n`;
+    md += '</details>\n\n';
   }
 
-  // ---------- write file -----------------------------------------------------
-  const outPath = path.join(
-    OUT_DIR,
-    `${wfName.replace(/\\s+/g, '_')}.md`
-  );
-  await fs.writeFile(outPath, md, 'utf8');
-  console.log(`✔  ${outPath}`);
+  const out = path.join(OUT_DIR, `${wfName.replace(/\s+/g, '_')}.md`);
+  await fs.writeFile(out, md, 'utf8');
+  console.log(`✔  ${out}`);
 }
 
-console.log('\\n✅  Documentation generated (XML + local form JSON)');
+console.log('\n✅  Documentation generated (XML + forms)');
