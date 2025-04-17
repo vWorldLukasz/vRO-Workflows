@@ -13,7 +13,11 @@ await fs.mkdir(OUT_DIR, { recursive: true });
 
 const collect = (x) => (Array.isArray(x) ? x : x ? [x] : []);
 const fence = (code, lang = 'javascript') => `\`\`\`${lang}\n${code}\n\`\`\``;
-const txt = (node) => (typeof node === 'string' ? node : node?._ ?? '');
+const txt = (node) => {
+  if (!node) return '';
+  if (Array.isArray(node)) return txt(node[0]);   // <── nowa linia
+  return typeof node === 'string' ? node : node._ ?? '';
+};
 
 // small util to build markdown tables
 function table(arr, cols) {
@@ -139,6 +143,7 @@ for (const xmlFile of files) {
     md += `#### Element: ${elName}\n`;
     md += `- **Type:** ${el.type}\n`;
     md += `- **Description:** ${txt(el.description) || '_No description provided_'}\n`;
+    md += `- **Element ID:** ${el.name}\n`;
     
     const inB = collect(el['in-binding']?.bind);
     if (inB.length)
