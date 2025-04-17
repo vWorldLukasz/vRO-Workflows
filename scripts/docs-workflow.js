@@ -1,36 +1,18 @@
 // docs-workflow.js — generate Markdown docs purely from XML + local form JSON
 // -----------------------------------------------------------------------------
-																					 
-																				  
-  
-																		   
-										  
-  
-								   
-								 
-			
-									  
-										  
-																				
-
 import fg from 'fast-glob';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { loadXml } from './parse-vro.js';
 
 // ENV override (optional)
-			 
 const GLOB = process.env.VRO_GLOB || '**/*workflow.xml';
 const OUT_DIR = 'docs/workflows';
 
 await fs.mkdir(OUT_DIR, { recursive: true });
 
-																				
-		 
 const collect = (x) => (Array.isArray(x) ? x : x ? [x] : []);
 const fence = (code, lang = 'javascript') => `\`\`\`${lang}\n${code}\n\`\`\``;
-															
-																
 
 // small util to build markdown tables
 function table(arr, cols) {
@@ -71,9 +53,7 @@ for (const xmlFile of files) {
   // gather linked modules / wf
   const linkedWorkflows = [];
   const linkedModules = [];
-
   for (const el of items) {
-																   
     if (el.type === 'link' && el['linked-workflow-id']) {
       linkedWorkflows.push({
         id: el['linked-workflow-id'],
@@ -114,7 +94,6 @@ for (const xmlFile of files) {
   md += `- **Description:** ${wfDesc}\n`;
   md += `</details>\n\n`;
 
-												  
   if (attribs.length)
     md += `<details>\n<summary><h2>Workflow Variables</h2></summary>\n\n` +
       table(attribs, [
@@ -161,8 +140,6 @@ for (const xmlFile of files) {
     md += `- **Description:** ${el.description ?? '_No description provided_'}\n`;
 
     const inB = collect(el['in-binding']?.bind);
-												  
-
     if (inB.length)
       md += `\n**Input Bindings:**\n\n` +
         table(inB, [
@@ -203,7 +180,6 @@ for (const xmlFile of files) {
   else md += '_No linked workflows defined._\n';
   md += `</details>\n\n`;
 
-									
   if (linkedModules.length) {
     md += `<details>\n<summary><h2>Linked Actions (script modules)</h2></summary>\n\n`;
     linkedModules.forEach((m) => (md += `- \`${m}\`\n`));
