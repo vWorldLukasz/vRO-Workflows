@@ -21,7 +21,7 @@ console.log(`🔍  Looking for XML files with pattern: ${PATTERN}`);
 console.log(`    ➜  found ${files.length} file(s)\n`);
 
 if (files.length === 0) {
-  console.error('❌  No workflow files found – check the glob pattern or repository structure.');
+  console.error('No workflow files found – check the glob pattern or repository structure.');
   process.exit(1);
 }
 
@@ -32,7 +32,7 @@ for (const file of files) {
   const wf = await loadXml(file);
   const scripts = extractScripts(wf);
 
-  console.log(`📄  ${file}`);
+  console.log(`${file}`);
   if (scripts.length === 0) {
     console.log('    (no Scriptable Tasks found)\n');
     continue;
@@ -53,8 +53,8 @@ for (const file of files) {
 }
 
 if (errorCount > 0) {
-  console.error(`❌  ESLint reported ${errorCount} error(s)`);
+  console.error(`ESLint reported ${errorCount} error(s)`);
   process.exit(1);
 } else {
-  console.log('✅  All embedded scripts passed ESLint');
+  console.log('All embedded scripts passed ESLint');
 }
