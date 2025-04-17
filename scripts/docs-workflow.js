@@ -68,25 +68,75 @@ for (const xmlFile of files) {
     if (el['script-module']) linkedModules.push(el['script-module']);
   }
 
-  // ---------- parse FORM JSON ----------------------------------------------
-  let formProps = [];
-  const formDir = path.join(path.dirname(xmlFile), 'forms');
-  try {
-    const formJsonRaw = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
-    const formJson = JSON.parse(formJsonRaw);
-    const schema = formJson.schema ?? {};
-    formProps = Object.values(schema).map((p) => ({
+ // ---------- parse FORM JSON ----------------------------------------------
+let formProps = [];
+const formDir = path.join(path.dirname(xmlFile), 'forms');
+try {
+  const raw = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
+  const schema = JSON.parse(raw).schema ?? {};
+
+  formProps = Object.values(schema).map((p) => {
+    // 1) Type + isMultiple
+    let typeDesc = p.type.dataType;
+    if (p.type.isMultiple) typeDesc += '[]';
+
+    // 2) Required / Optional (+ warunkowe)
+    let reqDesc = 'Optional';
+    const req = p.constraints?.required;
+    if (Array.isArray(req)) {
+      reqDesc = req
+        .map((cond) => {
+          // np. { equals: { useExistingPool: true }, value: true }
+          const [op, detail] = Object.entries(cond)[0];
+          const [field, _] = Object.entries(detail)[0];
+          return `Required if ${field} ${op}`;
+        })
+        .join('; ');
+    } else if (req === true) {
+      reqDesc = 'Required';
+    }
+
+    // 3) Pattern
+    const pattern = p.constraints?.pattern;
+    let patternDesc = '';
+    if (pattern) {
+      patternDesc = `; Pattern: \`${pattern.value}\`` + (pattern.message ? ` (${pattern.message})` : '');
+    }
+
+    // 4) Default
+    let defaultDesc = 'n/a';
+    if (p.default) {
+      if (p.default.type === 'scriptAction') {
+        defaultDesc = `Action: ${p.default.id}`;
+      } else {
+        defaultDesc = JSON.stringify(p.default);
+      }
+    }
+
+    // 5) Value List
+    let listDesc = 'n/a';
+    if (Array.isArray(p.valueList)) {
+      listDesc = p.valueList.map((v) => v.label || v.value).join(', ');
+    } else if (p.valueList?.type === 'scriptAction') {
+      listDesc = `Action: ${p.valueList.id}`;
+    }
+
+    // 6) Signpost
+    const signpost = p.signpost?.trim() || '';
+
+    return {
       id: p.id,
       label: p.label,
-      dataType: p.type?.dataType ?? '',
-      constraints: JSON.stringify(p.constraints ?? {}),
-      default: JSON.stringify(p.default ?? {}),
-      valueList: JSON.stringify(p.valueList ?? {}),
-      signpost: p.signpost ?? '',
-    }));
-  } catch {
-    // no forms folder or _.json -> ignore
-  }
+      type: typeDesc,
+      constraints: `${reqDesc}${patternDesc}`,
+      default: defaultDesc,
+      valueList: listDesc,
+      signpost,
+    };
+  });
+} catch {
+  // brak forms/_.json → ignorujemy
+}
 
   // ---------- build markdown -------------------------------------------------
   let md = `# ${wfName} - Workflow Documentation\n\n`;
@@ -128,7 +178,7 @@ for (const xmlFile of files) {
       table(formProps, [
         { key: 'id', header: 'ID' },
         { key: 'label', header: 'Label' },
-        { key: 'dataType', header: 'Data Type' },
+        { key: 'type', header: 'Type' },
         { key: 'constraints', header: 'Constraints' },
         { key: 'default', header: 'Default' },
         { key: 'valueList', header: 'Value List' },
