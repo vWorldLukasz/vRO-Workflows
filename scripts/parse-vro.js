@@ -13,7 +13,7 @@ export function extractScripts(workflowObj) {
   const items = workflowObj.workflow['workflow-item'] ?? [];
   const arr = Array.isArray(items) ? items : [items];
   return arr
-    .filter((i) => i.type === 'task' && i.script?._) // ._ = tekst w CDATA
+    .filter((i) => i.type === 'task' && i.script?._&& !i.runtime?._) // ._ = tekst w CDATA
     .map((i) => ({
       name: i['display-name']?._ ?? i.name ?? 'unknown',
       code: i.script._.replace(/^<!\[CDATA\[|\]\]>$/g, ''), // zdejmij CDATA
