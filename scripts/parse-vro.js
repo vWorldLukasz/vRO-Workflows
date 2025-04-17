@@ -1,26 +1,29 @@
-// scripts/parse-vro.js
+// scripts/parse-vro.js 
 import { promises as fs } from 'node:fs';
 import { parseStringPromise } from 'xml2js';
 
-/** Ładuje jeden plik XML i zwraca obiekt JS. */
+
 export async function loadXml(file) {
   const xml = await fs.readFile(file, 'utf8');
   return parseStringPromise(xml, { explicitArray: false, mergeAttrs: true, explicitCharkey: true });
 }
 
-/** Przyjmuje obiekt workflow i wyciąga tablicę skryptów JS (string). */
+
 export function extractScripts(workflowObj) {
-  const items = workflowObj.workflow['workflow-item'] ?? [];
-  const arr = Array.isArray(items) ? items : [items];
-  return arr
-    .filter((i) => i.type === 'task' && i.script?._&& !i.runtime?._) // ._ = tekst w CDATA
+  const rootKey = Object.keys(workflowObj)[0];
+  const root = workflowObj[rootKey];
+  const rawItems = root['workflow-item'] ?? root['workflowItem'] ?? [];
+  const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+
+  return items
+    .filter((i) => i.type === 'task' && i.script?._)
     .map((i) => ({
       name: i['display-name']?._ ?? i.name ?? 'unknown',
-      code: i.script._.replace(/^<!\[CDATA\[|\]\]>$/g, ''), // zdejmij CDATA
+      code: i.script._.replace(/^<!\[CDATA\[|\]\]>$/g, ''),
     }));
 }
 
-/** Zwraca przydatne metadane z workflow do dokumentacji. */
+
 export function meta(workflowObj) {
   const wf = workflowObj.workflow;
   return {
