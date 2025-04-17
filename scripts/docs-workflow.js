@@ -138,8 +138,8 @@ for (const xmlFile of files) {
     const elName = txt(el['display-name']) || el.name || 'unknown';
     md += `#### Element: ${elName}\n`;
     md += `- **Type:** ${el.type}\n`;
-    md += `- **Description:** ${el.description ?? '_No description provided_'}\n`;
-
+    md += `- **Description:** ${txt(el.description) || '_No description provided_'}\n`;
+    
     const inB = collect(el['in-binding']?.bind);
     if (inB.length)
       md += `\n**Input Bindings:**\n\n` +
@@ -159,7 +159,7 @@ for (const xmlFile of files) {
         ]);
 
     if (el.script?._)
-      md += `\n**Script:**\n\n${fence(el.script._.trim())}\n`;
+      md += `\n**Script:**\n\n${fence(el.script._.trim())}\n\n`;
 
     md += '\n---\n\n';
   }
