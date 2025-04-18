@@ -1289,3 +1289,11 @@ try {
 _No linked workflows defined._
 </details>
 
+```mermaid
+flowchart LR
+  item1["Init Variables"]
+  item1 --> item2
+  item2["Get Details"]
+  item2 --> item3
+  item2 -.-> item4
+```
