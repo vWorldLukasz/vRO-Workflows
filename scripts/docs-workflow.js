@@ -274,6 +274,35 @@ try {
     md += `</details>\n\n`;
   }
 
+// ——— Mermaid diagram ———
+  md += '## Workflow Diagram\n\n';
+  md += '```mermaid\n';
+  md += 'flowchart LR\n';  // LR = left‑to‑right (lub TD dla top‑down)\n\n";
+
+  // 1) deklaracja węzłów: <node_id>["Label"]
+  items.forEach(el => {
+    const id    = el.name;                          // unikalne id
+    const label = txt(el['display-name']) || el.name;
+    md += `  ${id}["${label}"]\n`;
+  });
+
+  md += '\n';  // mała przerwa
+
+  // 2) krawędzie wg out-name i alt-out-name
+  items.forEach(el => {
+    const src = el.name;
+    if (el['out-name']) {
+      md += `  ${src} --> ${el['out-name']}\n`;
+    }
+    if (el['alt-out-name']) {
+      md += `  ${src} -.-> ${el['alt-out-name']}\n`;
+    }
+  });
+
+  md += '```\n\n';
+  // ——— koniec Mermaid
+
+  
   // ---------- write file -----------------------------------------------------
   const outPath = path.join(
     OUT_DIR,
