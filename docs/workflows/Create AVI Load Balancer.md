@@ -1291,7 +1291,7 @@ _No linked workflows defined._
 
 ```mermaid
 flowchart LR
-  item1["<img src='icons/init.png' width='24'/> Init Variables"]
+  item1["<img src='../icons/init.png' width='24'/> Init Variables"]
   item1 --> item2
   item2["Get Details"]
   item2 --> item3
