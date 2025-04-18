@@ -111,8 +111,12 @@ try {
     
     let patternDesc = '';
     if (p.constraints?.pattern) {
-      patternDesc = '`' + p.constraints.pattern.value + '`';
-      // uwaga: nie pokazujemy już message w osobnej kolumnie
+      const rawPatternDesc =  p.constraints.pattern.value;
+      const escapedPatterDesc = raw.replace(/\|/g, '\\|');
+      patternDesc = ${escapedPatterDesc}
+      
+      
+
     }
 
     
