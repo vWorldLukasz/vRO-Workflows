@@ -12,17 +12,16 @@ jobs:
         shell: bash
 
     steps:
-      # 1) Checkout
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 2) Node (bez cache → nie wymagamy lock‑file)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3) Instalacja zależności (npm install, bo brak lock‑file)
       - name: Install deps
         run: npm install
 
@@ -36,14 +35,19 @@ jobs:
       - name: Build Markdown docs
         run: node scripts/docs-workflow.js
 
-      - name: Print generated docs to log
+      - name: Create & push documentation branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo " Available docs:"
-          ls -1 docs/workflows
-      
-          echo -e "\n---\n\nFirst 100 lines of each file:\n"
-          for file in docs/workflows/*.md; do
-            echo "===== $file ====="
-            cat "$file"
-            echo
-          done
+          # skonfiguruj usera
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          DOC_BRANCH="${{ github.head_ref }}-documentation"    
+          git checkout -b "$DOC_BRANCH"
+          git add docs/workflows/
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: auto‑generated workflow documentation"
+            git push --set-upstream origin "$DOC_BRANCH"
+          else
+            echo "No docs changes to commit, skipping push"
+          fi
