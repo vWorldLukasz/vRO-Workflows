@@ -72,71 +72,96 @@ for (const xmlFile of files) {
 let formProps = [];
 const formDir = path.join(path.dirname(xmlFile), 'forms');
 try {
-  const raw = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
-  const { schema = {} } = JSON.parse(raw);
+  const raw       = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
+  const formJson  = JSON.parse(raw);
+  const schema    = formJson.schema || {};
 
-  formProps = Object.values(schema).map((p) => {
-    // 1) id, label
-    const id    = p.id;
-    const label = p.label;
+  // 1. Rozwiń layout → mapujemy każdy field.id na jego state
+  const fieldStates = {};
+  (formJson.layout?.pages || []).forEach(page => {
+    (page.sections || []).forEach(section => {
+      (section.fields || []).forEach(field => {
+        fieldStates[field.id] = field.state || {};
+      });
+    });
+  });
 
-    // 2) type (+ isMultiple)
-    let type = p.type.dataType || '';
-    if (p.type.isMultiple) type += '[]';
+  // 2. Mapujemy schema → propsy
+  formProps = Object.values(schema).map(p => {
+    // a) Type (+ isMultiple)
+    let typeDesc = p.type.dataType;
+    if (p.type.isMultiple) typeDesc += '[]';
 
-    // 3) required / optional
-    let required = 'Optional';
-    if (typeof p.constraints?.required === 'boolean') {
-      required = p.constraints.required ? 'Required' : 'Optional';
-    } else if (Array.isArray(p.constraints?.required)) {
-      required = p.constraints.required
-        .map((cond) => {
-          // znajdź klucz inny niż "value"
-          const opKey = Object.keys(cond).find((k) => k !== 'value');
+    // b) Required / Optional (+ warunkowe equals)
+    let requiredDesc = 'Optional';
+    const req = p.constraints?.required;
+    if (Array.isArray(req)) {
+      requiredDesc = req
+        .map(cond => {
+          const opKey  = Object.keys(cond).find(k => k !== 'value');
           const detail = cond[opKey];
-          const field  = Object.keys(detail)[0];
-          const expVal = detail[field];
-          const when   = cond.value;               // zwykle true
-          if (when) {
-            return `Required if ${field} ${opKey} ${expVal}`;
-          } else {
-            return `Required unless ${field} ${opKey} ${expVal}`;
-          }
+          const [field, exp] = Object.entries(detail)[0];
+          return `Required if ${field} ${opKey} ${exp}`;
         })
         .join('; ');
+    } else if (req === true) {
+      requiredDesc = 'Required';
     }
 
-    // 4) pattern (+ message)
-    let pattern    = '';
-    let patternMsg = '';
+    // c) Pattern (+ wiadomość)
+    let patternDesc = '';
     if (p.constraints?.pattern) {
-      pattern    = p.constraints.pattern.value;
-      patternMsg = p.constraints.pattern.message || '';
+      patternDesc = p.constraints.pattern.value;
+      // uwaga: nie pokazujemy już message w osobnej kolumnie
     }
 
-    // 5) default
-    let def = 'n/a';
+    // d) Default
+    let defaultDesc = 'n/a';
+    let defaultParams = '';
     if (p.default) {
       if (p.default.type === 'scriptAction') {
-        def = `Action: ${p.default.id}`;
+        defaultDesc   = `Action: ${p.default.id}`;
+        // serializujemy parameters, np. "seg:networkSegment, clu:cloud"
+        defaultParams = p.default.parameters
+          .map(par => {
+            const key = Object.keys(par).find(k => k !== '$type');
+            const val = par[key];
+            return `${key}→${val}`;
+          })
+          .join(', ');
       } else {
-        def = JSON.stringify(p.default);
+        defaultDesc = JSON.stringify(p.default);
       }
     }
 
-    // 6) valueList
-    let valueList = 'n/a';
+    // e) Value List
+    let listDesc = 'n/a';
     if (Array.isArray(p.valueList)) {
-      valueList = p.valueList.map((v) => v.label || v.value).join(', ');
+      listDesc = p.valueList.map(v => v.label || v.value).join(', ');
     } else if (p.valueList?.type === 'scriptAction') {
-      valueList = `Action: ${p.valueList.id}`;
+      listDesc = `Action: ${p.valueList.id}`;
     }
 
-    // 7) signpost
-    const signpost = p.signpost || '';
+    // f) Signpost
+    const signpost = (p.signpost || '').trim();
 
-    return { id, label, type, required, pattern, patternMsg, def, valueList, signpost };
+    // g) State (z layoutu)
+    const state = fieldStates[p.id] || {};
+
+    return {
+      id:          p.id,
+      label:       p.label,
+      type:        typeDesc,
+      required:    requiredDesc,
+      pattern:     patternDesc,
+      default:     defaultDesc,
+      params:      defaultParams,
+      valueList:   listDesc,
+      signpost,
+      state:       JSON.stringify(state)
+    };
   });
+
 } catch {
 
 }
@@ -179,15 +204,16 @@ try {
   if (formProps.length)
     md += `<details>\n<summary><h2>Workflow Form</h2></summary>\n\n` +
       table(formProps, [
-        { key: 'id',         header: 'ID' },
-        { key: 'label',      header: 'Label' },
-        { key: 'type',       header: 'Type' },
-        { key: 'required',   header: 'Required' },
-        { key: 'pattern',    header: 'Pattern' },
-        { key: 'patternMsg', header: 'Pattern Message' },
-        { key: 'def',        header: 'Default' },
-        { key: 'valueList',  header: 'Value List' },
-        { key: 'signpost',   header: 'Signpost' },
+        { key: 'id',       header: 'ID' },
+        { key: 'label',    header: 'Label' },
+        { key: 'type',     header: 'Type' },
+        { key: 'required', header: 'Required' },
+        { key: 'pattern',  header: 'Pattern' },
+        { key: 'default',  header: 'Default' },
+        { key: 'params',   header: 'Params' },
+        { key: 'valueList', header: 'Value List' },
+        { key: 'signpost', header: 'Signpost' },
+        { key: 'state',    header: 'State' },
       ]) +
       `</details>\n\n`;
 
