@@ -68,74 +68,77 @@ for (const xmlFile of files) {
     if (el['script-module']) linkedModules.push(el['script-module']);
   }
 
- // ---------- parse FORM JSON ----------------------------------------------
+// ---------- parse FORM JSON ----------------------------------------------
 let formProps = [];
 const formDir = path.join(path.dirname(xmlFile), 'forms');
 try {
   const raw = await fs.readFile(path.join(formDir, '_.json'), 'utf8');
-  const schema = JSON.parse(raw).schema ?? {};
+  const { schema = {} } = JSON.parse(raw);
 
   formProps = Object.values(schema).map((p) => {
-    // 1) Type + isMultiple
-    let typeDesc = p.type.dataType;
-    if (p.type.isMultiple) typeDesc += '[]';
+    // 1) id, label
+    const id    = p.id;
+    const label = p.label;
 
-    // 2) Required / Optional (+ warunkowe)
-    let reqDesc = 'Optional';
-    const req = p.constraints?.required;
-    if (Array.isArray(req)) {
-      reqDesc = req
+    // 2) type (+ isMultiple)
+    let type = p.type.dataType || '';
+    if (p.type.isMultiple) type += '[]';
+
+    // 3) required / optional
+    let required = 'Optional';
+    if (typeof p.constraints?.required === 'boolean') {
+      required = p.constraints.required ? 'Required' : 'Optional';
+    } else if (Array.isArray(p.constraints?.required)) {
+      required = p.constraints.required
         .map((cond) => {
-          // np. { equals: { useExistingPool: true }, value: true }
-          const [op, detail] = Object.entries(cond)[0];
-          const [field, _] = Object.entries(detail)[0];
-          return `Required if ${field} ${op}`;
+          // znajdź klucz inny niż "value"
+          const opKey = Object.keys(cond).find((k) => k !== 'value');
+          const detail = cond[opKey];
+          const field  = Object.keys(detail)[0];
+          const expVal = detail[field];
+          const when   = cond.value;               // zwykle true
+          if (when) {
+            return `Required if ${field} ${opKey} ${expVal}`;
+          } else {
+            return `Required unless ${field} ${opKey} ${expVal}`;
+          }
         })
         .join('; ');
-    } else if (req === true) {
-      reqDesc = 'Required';
     }
 
-    // 3) Pattern
-    const pattern = p.constraints?.pattern;
-    let patternDesc = '';
-    if (pattern) {
-      patternDesc = `; Pattern: \`${pattern.value}\`` + (pattern.message ? ` (${pattern.message})` : '');
+    // 4) pattern (+ message)
+    let pattern    = '';
+    let patternMsg = '';
+    if (p.constraints?.pattern) {
+      pattern    = p.constraints.pattern.value;
+      patternMsg = p.constraints.pattern.message || '';
     }
 
-    // 4) Default
-    let defaultDesc = 'n/a';
+    // 5) default
+    let def = 'n/a';
     if (p.default) {
       if (p.default.type === 'scriptAction') {
-        defaultDesc = `Action: ${p.default.id}`;
+        def = `Action: ${p.default.id}`;
       } else {
-        defaultDesc = JSON.stringify(p.default);
+        def = JSON.stringify(p.default);
       }
     }
 
-    // 5) Value List
-    let listDesc = 'n/a';
+    // 6) valueList
+    let valueList = 'n/a';
     if (Array.isArray(p.valueList)) {
-      listDesc = p.valueList.map((v) => v.label || v.value).join(', ');
+      valueList = p.valueList.map((v) => v.label || v.value).join(', ');
     } else if (p.valueList?.type === 'scriptAction') {
-      listDesc = `Action: ${p.valueList.id}`;
+      valueList = `Action: ${p.valueList.id}`;
     }
 
-    // 6) Signpost
-    const signpost = p.signpost?.trim() || '';
+    // 7) signpost
+    const signpost = p.signpost || '';
 
-    return {
-      id: p.id,
-      label: p.label,
-      type: typeDesc,
-      constraints: `${reqDesc}${patternDesc}`,
-      default: defaultDesc,
-      valueList: listDesc,
-      signpost,
-    };
+    return { id, label, type, required, pattern, patternMsg, def, valueList, signpost };
   });
 } catch {
-  // brak forms/_.json → ignorujemy
+
 }
 
   // ---------- build markdown -------------------------------------------------
@@ -176,13 +179,15 @@ try {
   if (formProps.length)
     md += `<details>\n<summary><h2>Workflow Form</h2></summary>\n\n` +
       table(formProps, [
-        { key: 'id', header: 'ID' },
-        { key: 'label', header: 'Label' },
-        { key: 'type', header: 'Type' },
-        { key: 'constraints', header: 'Constraints' },
-        { key: 'default', header: 'Default' },
-        { key: 'valueList', header: 'Value List' },
-        { key: 'signpost', header: 'Signpost' },
+        { key: 'id',         header: 'ID' },
+        { key: 'label',      header: 'Label' },
+        { key: 'type',       header: 'Type' },
+        { key: 'required',   header: 'Required' },
+        { key: 'pattern',    header: 'Pattern' },
+        { key: 'patternMsg', header: 'Pattern Message' },
+        { key: 'def',        header: 'Default' },
+        { key: 'valueList',  header: 'Value List' },
+        { key: 'signpost',   header: 'Signpost' },
       ]) +
       `</details>\n\n`;
 
