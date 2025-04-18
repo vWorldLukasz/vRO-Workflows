@@ -5,7 +5,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { loadXml } from './parse-vro.js';
 
-// ENV override (optional)
+
 const GLOB = process.env.VRO_GLOB || '**/*workflow.xml';
 const OUT_DIR = 'docs/workflows';
 
@@ -19,7 +19,7 @@ const txt = (node) => {
   return typeof node === 'string' ? node : node._ ?? '';
 };
 
-// small util to build markdown tables
+
 function table(arr, cols) {
   if (!arr.length) return '';
   const header =
@@ -76,7 +76,7 @@ try {
   const formJson  = JSON.parse(raw);
   const schema    = formJson.schema || {};
 
-  // 1. Rozwiń layout → mapujemy każdy field.id na jego state
+  
   const fieldStates = {};
   (formJson.layout?.pages || []).forEach(page => {
     (page.sections || []).forEach(section => {
@@ -86,13 +86,13 @@ try {
     });
   });
 
-  // 2. Mapujemy schema → propsy
+  
   formProps = Object.values(schema).map(p => {
-    // a) Type (+ isMultiple)
+   
     let typeDesc = p.type.dataType;
     if (p.type.isMultiple) typeDesc += '[]';
 
-    // b) Required / Optional (+ warunkowe equals)
+    
     let requiredDesc = 'Optional';
     const req = p.constraints?.required;
     if (Array.isArray(req)) {
@@ -108,20 +108,20 @@ try {
       requiredDesc = 'Required';
     }
 
-    // c) Pattern (+ wiadomość)
+    
     let patternDesc = '';
     if (p.constraints?.pattern) {
-      patternDesc = p.constraints.pattern.value;
+      patternDesc = '`' + p.constraints.pattern.value + '`';
       // uwaga: nie pokazujemy już message w osobnej kolumnie
     }
 
-    // d) Default
+    
     let defaultDesc = 'n/a';
     let defaultParams = '';
     if (p.default) {
       if (p.default.type === 'scriptAction') {
         defaultDesc   = `Action: ${p.default.id}`;
-        // serializujemy parameters, np. "seg:networkSegment, clu:cloud"
+        
         defaultParams = p.default.parameters
           .map(par => {
             const key = Object.keys(par).find(k => k !== '$type');
@@ -134,7 +134,7 @@ try {
       }
     }
 
-    // e) Value List
+    
     let listDesc = 'n/a';
     if (Array.isArray(p.valueList)) {
       listDesc = p.valueList.map(v => v.label || v.value).join(', ');
@@ -142,10 +142,10 @@ try {
       listDesc = `Action: ${p.valueList.id}`;
     }
 
-    // f) Signpost
+    
     const signpost = (p.signpost || '').trim();
 
-    // g) State (z layoutu)
+    
     const state = fieldStates[p.id] || {};
 
     return {
