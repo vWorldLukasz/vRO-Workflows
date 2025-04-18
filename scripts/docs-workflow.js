@@ -112,7 +112,7 @@ try {
     let patternDesc = '';
     if (p.constraints?.pattern) {
       const rawPatternDesc =  p.constraints.pattern.value;
-      const escapedPatterDesc = raw.replace(/\|/g, '\\|');
+      const escapedPatterDesc = rawPatternDesc.replace(/\|/g, '\\|');
       patternDesc = `\`${escapedPatterDesc}\``;
     }
 
