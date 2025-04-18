@@ -277,30 +277,40 @@ try {
 // ——— Mermaid diagram ———
   md += '## Workflow Diagram\n\n';
   md += '```mermaid\n';
-  md += 'flowchart LR\n';  // LR = left‑to‑right (lub TD dla top‑down)\n\n";
+  md += 'flowchart LR\n';  
 
-  // 1) deklaracja węzłów: <node_id>["Label"]
+ 
   items.forEach(el => {
-    const id    = el.name;                          // unikalne id
+    const id    = el.name;                          
     const label = txt(el['display-name']) || el.name;
     md += `  ${id}["${label}"]\n`;
   });
 
-  md += '\n';  // mała przerwa
+  md += '\n'; 
 
-  // 2) krawędzie wg out-name i alt-out-name
-  items.forEach(el => {
-    const src = el.name;
-    if (el['out-name']) {
-      md += `  ${src} --> ${el['out-name']}\n`;
-    }
-    if (el['alt-out-name']) {
-      md += `  ${src} -.-> ${el['alt-out-name']}\n`;
-    }
-  });
+
+items.forEach(el => {
+  const src = el.name;
+
+  if (el.type === 'switch') {
+    const conds = collect(el.condition);
+    conds.forEach(c => {
+      const test = (typeof c._ === 'string' && c._.trim()) || c.name || '';
+      md += `  ${src} -- "${test}" --> ${c.label}\n`;
+    });
+  } else {
+    if (el['out-name'])     md += `  ${src} --> ${el['out-name']}\n`;
+    if (el['alt-out-name']) md += `  ${src} -.-> ${el['alt-out-name']}\n`;
+  }
+
+
+  if (el['catch-name']) {
+    md += `  ${src} -. "catch" .-> ${el['catch-name']}\n`;
+  }
+});
 
   md += '```\n\n';
-  // ——— koniec Mermaid
+
 
   
   // ---------- write file -----------------------------------------------------
