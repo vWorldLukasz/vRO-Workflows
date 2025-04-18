@@ -37,7 +37,7 @@ jobs:
 
       - name: Create & push documentation branch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # skonfiguruj usera
           git config user.name "github-actions[bot]"
