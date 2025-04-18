@@ -1,0 +1,1063 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?> 
+<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item1" object-name="workflow:name=generic" id="e06ecd6e-df7d-470d-8249-3bb52f2845a6" editor-version="2.0" version="0.0.0" api-version="6.0.0" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Create AVI Load Balancer</display-name>
+    <error-handler name="item22">
+        <position y="340.0" x="40.0"/>
+    </error-handler>
+    <position y="50.0" x="40.0"/>
+    <input>
+        <param name="manualServers" type="Array/string"/>
+        <param name="selectedVMs" type="Array/string"/>
+        <param name="useVMSelection" type="boolean"/>
+        <param name="useExistingHealthMonitor" type="boolean"/>
+        <param name="existingHealthMonitor" type="string"/>
+        <param name="health_monitor_type" type="string"/>
+        <param name="healthPort" type="string"/>
+        <param name="command_code" type="string"/>
+        <param name="command_parameters" type="string"/>
+        <param name="command_path" type="string"/>
+        <param name="command_variables" type="string"/>
+        <param name="lb_algorithm" type="string"/>
+        <param name="poolPort" type="string"/>
+        <param name="useExistingPool" type="boolean"/>
+        <param name="existingPool" type="string"/>
+        <param name="networkType" type="string"/>
+        <param name="ipAddress" type="string"/>
+        <param name="cloud" type="string"/>
+        <param name="tier1_lr" type="string"/>
+        <param name="serviceEngineGroup" type="string"/>
+        <param name="vrfContext" type="string"/>
+        <param name="network" type="string"/>
+        <param name="networkSegment" type="string"/>
+        <param name="vipIPRange" type="string"/>
+    </input>
+    <output/>
+    <attrib name="aviVersion" type="string">
+        <value encoded="n"/>
+        <description>Version identifier of AVI system</description>
+    </attrib>
+    <attrib name="aviCreds" type="Properties">
+        <value encoded="n">{}</value>
+    </attrib>
+    <attrib name="aviUrl" type="string">
+        <value encoded="n"/>
+        <description>URL endpoint for the AVI system used for API integration and communication</description>
+    </attrib>
+    <attrib name="serverList" type="Array/string">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="health_payload" type="string">
+        <value encoded="n"></value>
+    </attrib>
+    <attrib name="health_name" type="string">
+        <value encoded="n"></value>
+    </attrib>
+    <attrib name="uuid" type="string">
+        <value encoded="n"></value>
+    </attrib>
+    <attrib name="healthMonitor" type="string">
+        <value encoded="n"></value>
+    </attrib>
+    <attrib name="poolPayload" type="Properties">
+        <value encoded="n">{}</value>
+    </attrib>
+    <attrib name="pool" type="string">
+        <value encoded="n"></value>
+    </attrib>
+    <attrib name="vipPayload" type="Properties">
+        <value encoded="n">{}</value>
+        <description> Virtual IP payload containing configuration details and parameters for provisioning and managing the Virtual IP within the AVI system</description>
+    </attrib>
+    <attrib name="vsvip" type="string">
+        <value encoded="n"/>
+        <description>Virtual Service Virtual IP address details used for routing and connectivity of the Virtual Service</description>
+    </attrib>
+    <attrib name="vsPayload" type="Properties">
+        <value encoded="n">{}</value>
+        <description>Virtual Service payload containing configuration details and operational parameters for the Virtual Service</description>
+    </attrib>
+    <attrib name="aviTenant" type="Properties">
+        <value encoded="n">{}</value>
+        <description>Tenant identifier of AVI system. Holds name and ID</description>
+    </attrib>
+    <workflow-item name="item0" type="end" end-mode="0" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="50.0" x="1420.0"/>
+    </workflow-item>
+    <workflow-item name="item1" out-name="item2" type="task" comparator="0">
+        <display-name>initVariables</display-name>
+        <script encoded="false">try {
+
+    var automationModule = System.getModule("net.atos.dhc.automation");
+    if (automationModule === null || automationModule === undefined) {
+        throw new Error("Module 'net.atos.dhc.automation' is not available.");
+    }
+    
+    var aviVersion = automationModule.getAVIVersion();
+    if (aviVersion === null || aviVersion === undefined || (typeof aviVersion === "string" &amp;&amp; aviVersion.trim() === "")) {
+        throw new Error("aviVersion is required but not provided or is empty.");
+    }
+    
+    var aviCreds = automationModule.getAviCreds();
+
+    
+    var aviUrl = automationModule.configElement("DHC", "SSRConfig", "aviServer");
+    if (aviUrl === null || aviUrl === undefined || (typeof aviUrl === "string" &amp;&amp; aviUrl.trim() === "")) {
+        throw new Error("aviUrl is required but not provided or is empty.");
+    }
+
+    System.log(" [INFO] AVI Version: " + aviVersion + " / AVI URL: " + aviUrl);
+    
+
+    var aviTenant = automationModule.getAVITenantRef();
+    System.log("AVI tenant reference: "+aviTenant.label +" with id: "+aviTenant.value)
+    if (!aviTenant || !aviTenant.label) {
+        throw new Error("AVI tenant reference or label is missing.");
+    }
+
+    var uuid = java.util.UUID.randomUUID().toString();
+    timestamp = new Date().toISOString();
+    System.log(" [INFO] Generated UUID: " + uuid);
+
+
+    
+} catch (e) {
+
+    var timestamp = new Date().toISOString();
+    System.log(" [ERROR] An error occurred during script execution: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding/>
+        <out-binding>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="uuid" type="string" export-name="uuid"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="160.0"/>
+    </workflow-item>
+    <workflow-item name="item2" out-name="item3" type="task" comparator="0">
+        <display-name>mergeServers</display-name>
+        <script encoded="false">try {
+    var manualServers = manualServers || [];
+    
+    var selectedVMs = selectedVMs || [];
+
+    var combined = manualServers.concat(useVMSelection ? selectedVMs : []);
+
+    var deduped = [];
+    for (var i = 0; i &lt; combined.length; i++) {
+        if (deduped.indexOf(combined[i]) === -1) {
+            deduped.push(combined[i]);
+        }
+    }
+    
+    serverList = deduped;
+    System.log(" [INFO] Merged Server List: " + JSON.stringify(serverList));
+} catch (e) {
+    System.log(" [ERROR] An error occurred during server list merging: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="useVMSelection" type="boolean" export-name="useVMSelection"/>
+            <bind name="manualServers" type="Array/string" export-name="manualServers"/>
+            <bind name="selectedVMs" type="Array/string" export-name="selectedVMs"/>
+        </in-binding>
+        <out-binding>
+            <bind name="serverList" type="Array/string" export-name="serverList"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="320.0"/>
+    </workflow-item>
+    <workflow-item name="item3" out-name="item6" type="task" comparator="0">
+        <display-name>determineHealthMonitor</display-name>
+        <script encoded="false">try {
+    if (useExistingHealthMonitor) {
+        healthMonitor = existingHealthMonitor;
+        System.log(" [INFO] Using existing health monitor: " + healthMonitor);
+    } else {
+        if (health_monitor_type == "HEALTH_MONITOR_EXTERNAL") {
+            var health_payload = {
+                "name": "external-monitor-" + uuid,
+                "type": health_monitor_type,
+                "monitor_port": healthPort,
+                "tenant_ref":aviTenant.value,
+                "external_monitor": {
+                    "command_code": command_code,
+                    "command_parameters": command_parameters,
+                    "command_path": command_path,
+                    "command_variables": command_variables
+                }
+            };
+            var body = JSON.stringify(health_payload);
+            System.log(" [INFO] Creating External Health Monitor: " + body);
+        } else {
+            var health_payload = {
+                "name": "standard-monitor-" + uuid,
+                "type": health_monitor_type,
+                "monitor_port": healthPort,
+                "monitor_port": healthPort
+            };
+            var body = JSON.stringify(health_payload);
+            System.log(" [INFO] Creating Standard Health Monitor: " + body);
+        }
+        health_name = health_payload.name;
+    }
+} catch (e) {
+    System.log(" [ERROR] An error occurred during health monitor creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="useExistingHealthMonitor" type="boolean" export-name="useExistingHealthMonitor"/>
+            <bind name="health_monitor_type" type="string" export-name="health_monitor_type"/>
+            <bind name="healthPort" type="string" export-name="healthPort"/>
+            <bind name="command_code" type="string" export-name="command_code"/>
+            <bind name="command_variables" type="string" export-name="command_variables"/>
+            <bind name="command_parameters" type="string" export-name="command_parameters"/>
+            <bind name="command_path" type="string" export-name="command_path"/>
+            <bind name="uuid" type="string" export-name="uuid"/>
+            <bind name="existingHealthMonitor" type="string" export-name="existingHealthMonitor"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="health_payload" type="string" export-name="health_payload"/>
+            <bind name="health_name" type="string" export-name="health_name"/>
+            <bind name="healthMonitor" type="string" export-name="healthMonitor"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="120.0" x="420.0"/>
+    </workflow-item>
+    <workflow-item name="item4" out-name="item7" type="task" comparator="0">
+        <display-name>createHealthMonitor</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+    
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+    
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+    var body = JSON.stringify(health_payload);
+    System.log("Prepared Payload: " + body);
+
+    var apiUri = "https://" + aviUrl + "/api/healthmonitor";
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("POST", apiUri, body);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+    apiRequest.setHeader("X-Avi-Tenant-UUID", aviTenant.value);
+    apiRequest.setHeader("X-Avi-Tenant", aviTenant.label);
+
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+    var responseObj = JSON.parse(apiResponse.contentAsString);
+
+    var uuid = responseObj.uuid;
+    var monitorName = responseObj.name;
+
+    healthMonitor = uuid + "#" + monitorName;
+    
+    System.log("Concatenated healthMonitor value: " + healthMonitor);
+} catch (e) {
+    System.log(" [ERROR] An error occurred during script execution: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="health_payload" type="string" export-name="health_payload"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="healthMonitor" type="string" export-name="healthMonitor"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="200.0" x="540.0"/>
+    </workflow-item>
+    <workflow-item name="item6" out-name="item7" alt-out-name="item4" type="custom-condition" comparator="0">
+        <display-name>useExistingHealthMonitor?</display-name>
+        <script encoded="false">try {
+    if (useExistingHealthMonitor) {
+        System.log(" [INFO] useExistingHealthMonitor is true.");
+        return true;
+    } else {
+        System.log(" [INFO] useExistingHealthMonitor is false.");
+        return false;
+    }
+} catch (e) {
+    System.log(" [ERROR] An error occurred during health monitor selection: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="useExistingHealthMonitor" type="boolean" export-name="useExistingHealthMonitor"/>
+        </in-binding>
+        <out-binding/>
+        <description>Custom decision based on a custom script.</description>
+        <position y="50.0" x="540.0"/>
+    </workflow-item>
+    <workflow-item name="item7" out-name="item9" type="task" comparator="0">
+        <display-name>determinePool</display-name>
+        <script encoded="false">try {
+    if (useExistingPool) {
+        pool = existingPool;
+        System.log(" [INFO] Using existing pool: " + pool);
+    } else {
+        var vrf_ref = networkSegment.split("@@")[2]
+        var payload = {
+            "name": "pool-" + uuid,
+            "default_server_port": poolPort,
+            "lb_algorithm": lb_algorithm,
+            "health_monitor_refs": [healthMonitor],
+            "cloud_ref":cloud,
+            "tier1_lr":tier1_lr,
+            "vrf_ref": vrf_ref,
+            "tenant_ref":aviTenant.value,
+            "servers": []
+        };
+
+        for (var i = 0; i &lt; serverList.length; i++) {
+            payload.servers.push({
+                "ip": { "addr": serverList[i], "type": "V4" }
+            });
+        }
+
+        payload.health_monitor_refs = ["https://" + aviUrl + "/api/healthmonitor/" + healthMonitor];
+        var body = JSON.stringify(payload);
+        System.log(" [INFO] Creating Pool: " + body);
+        poolPayload = payload;
+    }
+} catch (e) {
+    System.log(" [ERROR] An error occurred during pool creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="useExistingPool" type="boolean" export-name="useExistingPool"/>
+            <bind name="existingPool" type="string" export-name="existingPool"/>
+            <bind name="poolPort" type="string" export-name="poolPort"/>
+            <bind name="lb_algorithm" type="string" export-name="lb_algorithm"/>
+            <bind name="serverList" type="Array/string" export-name="serverList"/>
+            <bind name="healthMonitor" type="string" export-name="healthMonitor"/>
+            <bind name="uuid" type="string" export-name="uuid"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="cloud" type="string" export-name="cloud"/>
+            <bind name="tier1_lr" type="string" export-name="tier1_lr"/>
+            <bind name="networkSegment" type="string" export-name="networkSegment"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="poolPayload" type="Properties" export-name="poolPayload"/>
+            <bind name="pool" type="string" export-name="pool"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="120.0" x="720.0"/>
+    </workflow-item>
+    <workflow-item name="item9" out-name="item11" alt-out-name="item10" type="custom-condition" comparator="0">
+        <display-name>useExistingPool</display-name>
+        <script encoded="false">try {
+    if (useExistingPool) {
+        System.log(" [INFO] useExistingPool is true.");
+        return true;
+    } else {
+        System.log(" [INFO] useExistingPool is false.");
+        return false;
+    }
+} catch (e) {
+    System.log(" [ERROR] An error occurred during pool selection: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="useExistingPool" type="boolean" export-name="useExistingPool"/>
+        </in-binding>
+        <out-binding/>
+        <description>Custom decision based on a custom script.</description>
+        <position y="50.0" x="840.0"/>
+    </workflow-item>
+    <workflow-item name="item10" out-name="item11" type="task" comparator="0">
+        <display-name>createPool</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+    var body = JSON.stringify(poolPayload);
+    System.log("Prepared Payload: " + body);
+
+    var apiUri = "https://" + aviUrl + "/api/pool";
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("POST", apiUri, body);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+    apiRequest.setHeader("X-Avi-Tenant-UUID", aviTenant.value);
+    apiRequest.setHeader("X-Avi-Tenant", aviTenant.label);
+    
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+    var responseObj = JSON.parse(apiResponse.contentAsString);
+
+    var uuid = responseObj.uuid;
+    var poolName = responseObj.name;
+
+    var pool = uuid + "#" + poolName;
+
+    System.log("Concatenated pool value: " + pool);
+} catch (e) {
+    System.log(" [ERROR] An error occurred during pool creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="poolPayload" type="Properties" export-name="poolPayload"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="pool" type="string" export-name="pool"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="200.0" x="840.0"/>
+    </workflow-item>
+    <workflow-item name="item11" out-name="item14" type="task" comparator="0">
+        <display-name>determineVIP</display-name>
+        <script encoded="false">try {
+    var vipPayload = {};
+    var network_ref = networkSegment.split("@@")[1];
+    var vrf_ref = networkSegment.split("@@")[2];
+    if (networkType == "Static IP") {
+        vipPayload = {
+            "name": "vip-" + uuid,
+            "cloud_ref": cloud,
+            "tier1_lr": tier1_lr,
+            "tenant_ref":aviTenant.value,
+            "vrf_ref": vrf_ref,
+            "vip": [
+                {
+                    "ip_address": { "addr": ipAddress, "type": "V4" }
+                }
+            ]
+        };
+        var body = JSON.stringify(vipPayload);
+        System.log(" [INFO] Creating Static VIP: " + body);
+    } else {
+        var addr = vipIPRange.split("/")[0];
+        var mask = vipIPRange.split("/")[1];
+        vipPayload = {
+            "name": "vip-" + uuid,
+            "cloud_ref": cloud,
+            "tier1_lr": tier1_lr,
+            "vrf_ref": vrf_ref,
+            "tenant_ref":aviTenant.value,
+            "vip": [
+                {
+                    "auto_allocate_ip": true,
+                    "ipam_network_subnet": {
+                        "network_ref": network_ref,
+                        "subnet": {
+                            "ip_addr": {
+                                "addr": addr,
+                                "type": "V4"
+                            },
+                            "mask": mask
+                        }
+                    }
+                }
+            ]
+        };
+        var body = JSON.stringify(vipPayload);
+        System.log(" [INFO] Creating Dynamic VIP: " + body);
+    }
+} catch (e) {
+    System.log(" [ERROR] An error occurred during VIP creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="networkType" type="string" export-name="networkType"/>
+            <bind name="ipAddress" type="string" export-name="ipAddress"/>
+            <bind name="uuid" type="string" export-name="uuid"/>
+            <bind name="cloud" type="string" export-name="cloud"/>
+            <bind name="tier1_lr" type="string" export-name="tier1_lr"/>
+            <bind name="vipIPRange" type="string" export-name="vipIPRange"/>
+            <bind name="networkSegment" type="string" export-name="networkSegment"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="vipPayload" type="Properties" export-name="vipPayload"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="1000.0"/>
+    </workflow-item>
+    <workflow-item name="item14" out-name="item15" type="task" comparator="0">
+        <display-name>createVSVIP</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+    var body = JSON.stringify(vipPayload);
+    System.log("Prepared Payload: " + body);
+
+    var apiUri = "https://" + aviUrl + "/api/vsvip";
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("POST", apiUri, body);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+    apiRequest.setHeader("X-Avi-Tenant-UUID", aviTenant.value);
+    apiRequest.setHeader("X-Avi-Tenant", aviTenant.label);
+
+
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+    var responseObj = JSON.parse(apiResponse.contentAsString);
+
+    var uuid = responseObj.uuid;
+
+    var vipName = responseObj.name;
+
+    var vsvip = uuid + "#" + vipName;
+
+    System.log("Concatenated vsvip value: " + vsvip);
+} catch (e) {
+    System.log(" [ERROR] An error occurred during vsvip creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="vipPayload" type="Properties" export-name="vipPayload"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="vsvip" type="string" export-name="vsvip"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="150.0" x="1000.0"/>
+    </workflow-item>
+    <workflow-item name="item15" out-name="item16" type="task" comparator="0">
+        <display-name>determineVirtualService</display-name>
+        <script encoded="false">try {
+    var vsName = "";
+    var vrf_ref = networkSegment.split("@@")[2];
+    if (networkType == "Dynamic IP") {
+        if (!useExistingPool &amp;&amp; useExistingHealthMonitor) {
+            vsName = "vs-dynamic-existing-hm-" + uuid;
+        } else if (!useExistingPool &amp;&amp; !useExistingHealthMonitor &amp;&amp; health_monitor_type == "HEALTH_MONITOR_EXTERNAL") {
+            vsName = "vs-dynamic-new-hm-" + uuid;
+        } else if (useExistingPool) {
+            vsName = "vs-dynamic-" + uuid;
+        } else if (!useExistingPool &amp;&amp; !useExistingHealthMonitor &amp;&amp; health_monitor_type != "HEALTH_MONITOR_EXTERNAL") {
+            vsName = "vs-dynamic-new-hm-" + uuid;
+        }
+    } else {
+        if (!useExistingPool &amp;&amp; !useExistingHealthMonitor &amp;&amp; health_monitor_type != "HEALTH_MONITOR_EXTERNAL") {
+            vsName = "vs-static-new-hm-" + uuid;
+        } else if (!useExistingPool &amp;&amp; useExistingHealthMonitor) {
+            vsName = "vs-static-existing-hm-" + uuid;
+        } else if (useExistingPool) {
+            vsName = "vs-static-" + uuid;
+        } else if (!useExistingPool &amp;&amp; !useExistingHealthMonitor &amp;&amp; health_monitor_type == "HEALTH_MONITOR_EXTERNAL") {
+            vsName = "vs-static-new-hm-" + uuid;
+        }
+    }
+
+    var vsPayload = {
+        "name": vsName,
+        "cloud_ref":cloud,
+        "tier1_lr":tier1_lr,
+        "vrf_ref": vrf_ref,
+        "se_group_ref":serviceEngineGroup,
+        "pool_ref": "https://" + aviUrl + "/api/pool/" + pool,
+        "vsvip_ref": "https://" + aviUrl + "/api/vsvip/" + vsvip,
+        "tenant_ref":aviTenant.value,
+        "services": [{
+            "port": poolPort,
+            "enable_ssl": false
+        }]
+    };
+
+    var body = JSON.stringify(vsPayload);
+    System.log(" [INFO] Creating Virtual Service: " + body);
+} catch (e) {
+    System.log(" [ERROR] An error occurred during Virtual Service creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="networkType" type="string" export-name="networkType"/>
+            <bind name="poolPort" type="string" export-name="poolPort"/>
+            <bind name="pool" type="string" export-name="pool"/>
+            <bind name="useExistingHealthMonitor" type="boolean" export-name="useExistingHealthMonitor"/>
+            <bind name="useExistingPool" type="boolean" export-name="useExistingPool"/>
+            <bind name="health_monitor_type" type="string" export-name="health_monitor_type"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="vsvip" type="string" export-name="vsvip"/>
+            <bind name="uuid" type="string" export-name="uuid"/>
+            <bind name="cloud" type="string" export-name="cloud"/>
+            <bind name="tier1_lr" type="string" export-name="tier1_lr"/>
+            <bind name="serviceEngineGroup" type="string" export-name="serviceEngineGroup"/>
+            <bind name="networkSegment" type="string" export-name="networkSegment"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding>
+            <bind name="vsPayload" type="Properties" export-name="vsPayload"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="50.0" x="1200.0"/>
+    </workflow-item>
+    <workflow-item name="item16" out-name="item0" type="task" comparator="0">
+        <display-name>createVS</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+    var body = JSON.stringify(vsPayload);
+    System.log("Prepared Payload: " + body);
+
+    var apiUri = "https://" + aviUrl + "/api/virtualservice";
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("POST", apiUri, body);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+    apiRequest.setHeader("X-Avi-Tenant-UUID", aviTenant.value);
+    apiRequest.setHeader("X-Avi-Tenant", aviTenant.label);
+
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+    var responseObj = JSON.parse(apiResponse.contentAsString);
+
+    var uuid = responseObj.uuid;
+
+    var vsName = responseObj.name;
+
+    var virtualservice = uuid + "#" + vsName;
+
+    System.log("Concatenated virtualservice value: " + virtualservice);
+} catch (e) {
+    System.log(" [ERROR] An error occurred during virtualservice creation: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="vsPayload" type="Properties" export-name="vsPayload"/>
+            <bind name="aviTenant" type="Properties" export-name="aviTenant"/>
+        </in-binding>
+        <out-binding/>
+        <description>Simple task with custom script capability.</description>
+        <position y="160.0" x="1200.0"/>
+    </workflow-item>
+    <workflow-item name="item17" type="end" end-mode="0" comparator="0">
+        <display-name>End workflow</display-name>
+        <in-binding/>
+        <out-binding/>
+        <position y="340.0" x="860.0"/>
+    </workflow-item>
+    <workflow-item name="item18" type="end" end-mode="0" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="430.0" x="400.0"/>
+    </workflow-item>
+    <workflow-item name="item19" out-name="item20" alt-out-name="item18" type="custom-condition" comparator="0">
+        <display-name>Check Health Monitor</display-name>
+        <script encoded="false">if(healthMonitor === "" || useExistingHealthMonitor === true)
+{
+    return false
+}
+else
+{
+    return true
+}</script>
+        <in-binding>
+            <bind name="healthMonitor" type="string" export-name="healthMonitor"/>
+            <bind name="useExistingHealthMonitor" type="boolean" export-name="useExistingHealthMonitor"/>
+        </in-binding>
+        <out-binding/>
+        <description>Custom decision based on a custom script.</description>
+        <position y="340.0" x="360.0"/>
+    </workflow-item>
+    <workflow-item name="item20" out-name="item17" type="task" comparator="0">
+        <display-name>clear Health Monitor</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+    
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+    
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+
+    var apiUri = "https://" + aviUrl + "/api/healthmonitor/"+healthMonitor;
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("DELETE", apiUri);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+
+
+
+} catch (e) {
+    System.log(" [ERROR] An error occurred during script execution: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="healthMonitor" type="string" export-name="healthMonitor"/>
+        </in-binding>
+        <out-binding/>
+        <description>Simple task with custom script capability.</description>
+        <position y="350.0" x="540.0"/>
+    </workflow-item>
+    <workflow-item name="item22" out-name="item23" alt-out-name="item19" type="custom-condition" comparator="0">
+        <display-name>Check Pool</display-name>
+        <script encoded="false">if(pool === "" || useExistingPool === true)
+{
+    return false
+}
+else
+{
+    return true
+}</script>
+        <in-binding>
+            <bind name="pool" type="string" export-name="pool"/>
+            <bind name="useExistingPool" type="boolean" export-name="useExistingPool"/>
+        </in-binding>
+        <out-binding/>
+        <description>Custom decision based on a custom script.</description>
+        <position y="280.0" x="120.0"/>
+    </workflow-item>
+    <workflow-item name="item23" out-name="item19" type="task" comparator="0">
+        <display-name>Clear Pool</display-name>
+        <script encoded="false">try {
+    var aviUsername = aviCreds.username;
+    var aviPassword = aviCreds.password;
+
+    var restHost = RESTHostManager.createTransientHostFrom(RESTHostManager.createHost("dynamicRequest"));
+    restHost.name = "AVI";
+    restHost.operationTimeout = 900;
+    restHost.url = "https://" + aviUrl;
+
+    var loginUri = "https://" + aviUrl + "/login";
+    
+    var ld = Config.getKeystores().getImportCAFromUrlAction();
+    var model = ld.getModel();
+    model.value = loginUri;
+    var error = ld.execute();
+    if (error) {
+        System.error("Failed to import SSL certificate: " + error);
+    } else {
+        System.log("SSL certificate successfully imported.");
+    }
+    
+    var loginPayload = JSON.stringify({ "username": aviUsername, "password": aviPassword });
+    var loginRequest = restHost.createRequest("POST", loginUri, loginPayload);
+    loginRequest.setHeader("Content-Type", "application/json");
+    loginRequest.setHeader("Accept", "application/json");
+
+    var loginResponse = loginRequest.execute();
+    System.log("Login Status Code: " + loginResponse.statusCode);
+    if (loginResponse.statusCode !== 200) {
+        System.error("Login failed. Exiting.");
+    }
+    
+    var cookies = loginResponse.getAllHeaders()['Set-Cookie'];
+    var sessionId = cookies.match(/sessionid=([^;]+)/)[1];
+    var csrfToken = cookies.match(/csrftoken=([^;]+)/)[1];
+
+    System.log("Session ID: " + sessionId);
+    System.log("CSRF Token: " + csrfToken);
+    System.log("X-Avi-Version: " + aviVersion);
+
+    var sessionCookie = "sessionid=" + sessionId;
+
+
+    var apiUri = "https://" + aviUrl + "/api/pool/"+pool;
+    System.log("API URI: " + apiUri);
+
+    var apiRequest = restHost.createRequest("DELETE", apiUri);
+    apiRequest.setHeader("Content-Type", "application/json");
+    apiRequest.setHeader("Accept", "application/json");
+    apiRequest.setHeader("Cookie", sessionCookie);
+    apiRequest.setHeader("X-CSRFToken", csrfToken);
+    apiRequest.setHeader("X-Avi-Version", aviVersion);
+    apiRequest.setHeader("Referer", "https://" + aviUrl + "/");
+
+    var apiResponse = apiRequest.execute();
+    System.log("API Request Status Code: " + apiResponse.statusCode);
+
+    if (apiResponse.statusCode &lt; 200 || apiResponse.statusCode &gt;= 300) {
+        throw new Error("API Request failed with status code " + apiResponse.statusCode + " and response "+ apiResponse.contentAsString);
+    }
+
+    System.log("API Response Content: " + apiResponse.contentAsString);
+
+  
+
+
+} catch (e) {
+    System.log(" [ERROR] An error occurred during script execution: " + e.message);
+    throw e;
+}
+</script>
+        <in-binding>
+            <bind name="aviCreds" type="Properties" export-name="aviCreds"/>
+            <bind name="aviUrl" type="string" export-name="aviUrl"/>
+            <bind name="aviVersion" type="string" export-name="aviVersion"/>
+            <bind name="pool" type="string" export-name="pool"/>
+        </in-binding>
+        <out-binding/>
+        <description>Simple task with custom script capability.</description>
+        <position y="350.0" x="120.0"/>
+    </workflow-item>
+</ns2:workflow>
